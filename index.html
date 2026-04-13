@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>💀 brainrottinggggg 💀</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    text-align: center;
+    background: black;
+    color: white;
+    background-image: url("dark_bg.jpg");
+    background-size: cover;
+}
+
+h1 { font-size: 40px; }
+
+button {
+    padding: 12px;
+    margin: 10px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.choice {
+    display: block;
+    background: hotpink;
+    width: 260px;
+    margin: 10px auto;
+}
+
+#timer {
+    height: 10px;
+    background: lime;
+    width: 100%;
+}
+
+#bossImg {
+    width: 180px;
+    display: none;
+    margin: 10px auto;
+}
+
+.shake { animation: shake 0.3s; }
+
+@keyframes shake {
+    0% { transform: translate(5px); }
+    50% { transform: translate(-5px); }
+    100% { transform: translate(0); }
+}
+</style>
+</head>
+
+<body>
+
+<h1>💀 brainrottinggggg 💀</h1>
+
+<img id="bossImg" src="boss.png">
+
+<button id="startBtn" onclick="startGame()">START</button>
+
+<h2 id="status"></h2>
+<h3 id="lives"></h3>
+
+<div id="timer"></div>
+
+<div id="questionBox" style="display:none;">
+    <h2 id="question"></h2>
+    <div id="choices"></div>
+</div>
+
+<!-- 🔊 SOUNDS -->
+<audio id="click" src="click.mp3"></audio>
+<audio id="correct" src="correct.mp3"></audio>
+<audio id="wrong" src="wrong.mp3"></audio>
+<audio id="damage" src="damage.mp3"></audio>
+<audio id="levelup" src="levelup.mp3"></audio>
+<audio id="bossIntro" src="boss_intro.mp3"></audio>
+<audio id="gameover" src="gameover.mp3"></audio>
+
+<script>
+let lives = 5;
+let level = "easy";
+let current = 0;
+let questions = [];
+let timer;
+
+const TIME = 30000;
+
+// ================= QUESTIONS =================
+const EASY = [
+{q:"What is 2 + 2?", a:["4","3","5","22"], c:0},
+{q:"Color of sky?", a:["Blue","Green","Red","Black"], c:0},
+{q:"Opposite of hot?", a:["Cold","Fire","Lava","Sun"], c:0},
+{q:"Water formula?", a:["H2O","CO2","O2","NaCl"], c:0},
+{q:"Earth is a?", a:["Planet","Star","Rock","Cloud"], c:0},
+{q:"Humans breathe?", a:["Oxygen","Fire","Water","Stone"], c:0},
+{q:"Sun rises from?", a:["East","West","North","South"], c:0},
+{q:"1 + 1?", a:["2","3","4","11"], c:0},
+{q:"How many legs cat?", a:["4","2","6","8"], c:0},
+{q:"Days in week?", a:["7","5","10","3"], c:0},
+];
+
+const MEDIUM = [
+{q:"HTML stands for?", a:["HyperText Markup Language","HyperText Machine Language","Webinar","67"], c:0},
+{q:"CSS is for?", a:["Styling","Logic","AI","Games"], c:0},
+{q:"CPU does?", a:["Processes data","Prints","Draws","Sings"], c:0},
+{q:"RAM is?", a:["Temporary memory","Hard disk","Screen","Battery"], c:0},
+{q:"Internet used for?", a:["Communication","Sleeping","Cooking","Flying"], c:0},
+{q:"Largest planet?", a:["Jupiter","Earth","Mars","Venus"], c:0},
+{q:"Keyboard is?", a:["Input device","Output","Software","Virus"], c:0},
+{q:"Which is programming language?", a:["JavaScript","Chair","Table","Cup"], c:0},
+{q:"What is 10 x 5?", a:["50","20","30","10"], c:0},
+{q:"Monitor is?", a:["Output device","Input","Food","Tool"], c:0},
+];
+
+const HARD = [
+{q:"HTTP stands for?", a:["Protocol","Game","App","None"], c:0},
+{q:"Binary 101 = ?", a:["5","2","10","7"], c:0},
+{q:"1 byte = ?", a:["8 bits","4 bits","16 bits","2 bits"], c:0},
+{q:"Linux is?", a:["OS","Game","App","Browser"], c:0},
+{q:"AI means?", a:["Artificial Intelligence","Auto Input","None","System"], c:0},
+{q:"Bug means?", a:["Error","Feature","Update","Virus"], c:0},
+{q:"CPU speed?", a:["GHz","MB","Kg","L"], c:0},
+{q:"Compile means?", a:["Convert code","Delete","Run","Open"], c:0},
+{q:"Stack order?", a:["LIFO","FIFO","Random","None"], c:0},
+{q:"RAM used for?", a:["Temporary memory","Storage","Display","Sound"], c:0},
+];
+
+// ================= AUDIO =================
+function play(id){
+    let a = document.getElementById(id);
+    if(a){
+        a.currentTime = 0;
+        a.play();
+    }
+}
+
+// ================= GAME =================
+
+function startGame(){
+    play("click");
+    lives = 5;
+    level = "easy";
+    startLevel();
+}
+
+function startLevel(){
+    current = 0;
+
+    let pool =
+        level === "easy" ? EASY :
+        level === "medium" ? MEDIUM :
+        HARD;
+
+    pool = shuffle([...pool]);
+    questions = pool.slice(0,10);
+
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("questionBox").style.display = "block";
+
+    document.getElementById("status").innerText =
+        "LEVEL: " + level.toUpperCase();
+
+    if(level === "hard"){
+        document.getElementById("bossImg").style.display = "block";
+        play("bossIntro");
+    }
+
+    updateLives();
+    loadQuestion();
+}
+
+function updateLives(){
+    document.getElementById("lives").innerText = "Lives: " + lives;
+}
+
+function loadQuestion(){
+    if(lives <= 0) return;
+    if(current >= 10) return nextLevel();
+
+    let q = questions[current];
+    document.getElementById("question").innerText = q.q;
+
+    let box = document.getElementById("choices");
+    box.innerHTML = "";
+
+    let shuffled = q.a.map((t,i)=>({t,correct:i===q.c}));
+    shuffled = shuffle(shuffled);
+
+    shuffled.forEach(item=>{
+        let btn = document.createElement("button");
+        btn.className = "choice";
+        btn.innerText = item.t;
+        btn.onclick = () => answer(item.correct);
+        box.appendChild(btn);
+    });
+
+    startTimer();
+}
+
+function answer(correct){
+    play("click");
+
+    if(correct){
+        play("correct");
+        current++;
+        loadQuestion();
+    } else {
+        play("wrong");
+        loseLife();
+    }
+}
+
+function loseLife(){
+    lives--;
+    play("damage");
+
+    document.body.classList.add("shake");
+    setTimeout(()=>document.body.classList.remove("shake"),300);
+
+    updateLives();
+
+    if(lives <= 0){
+        gameOver();
+    }
+}
+
+function nextLevel(){
+    play("levelup");
+
+    if(level === "easy"){
+        level = "medium";
+        alert("EASY PEASY MO?");
+    }
+    else if(level === "medium"){
+        level = "hard";
+        alert("KAYA PA BA?? GO!");
+    }
+    else{
+        winGame();
+        return;
+    }
+
+    startLevel();
+}
+
+function gameOver(){
+    play("gameover");
+
+    document.getElementById("status").innerHTML =
+        "💀 YOU ARE COOKED BROOOO 💀<br><button onclick='location.reload()'>PLAY AGAIN</button>";
+
+    document.getElementById("questionBox").style.display = "none";
+}
+
+function winGame(){
+    document.getElementById("status").innerHTML =
+        "😈 UYYY, SAN KA NAGSEARCH??? 😈<br><button onclick='location.reload()'>PLAY AGAIN</button>";
+
+    document.getElementById("questionBox").style.display = "none";
+}
+
+function startTimer(){
+    clearTimeout(timer);
+
+    const bar = document.getElementById("timer");
+    bar.style.transition = "none";
+    bar.style.width = "100%";
+
+    setTimeout(()=>{
+        bar.style.transition = TIME + "ms linear";
+        bar.style.width = "0%";
+    },50);
+
+    timer = setTimeout(()=>{
+        loseLife();
+        current++;
+        loadQuestion();
+    }, TIME);
+}
+
+function shuffle(arr){
+    return arr.sort(()=>Math.random()-0.5);
+}
+</script>
+
+</body>
+</html>
